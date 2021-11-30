@@ -23,6 +23,10 @@ import {UsuarioRepository} from '../repositories';
 import {service} from '@loopback/core';
 import {AuthService} from '../services';
 import axios from 'axios';
+import {Credenciales} from '../models';
+import { HttpErrors} from '@loopback/rest';
+import {authenticate} from '@loopback/authentication';
+@authenticate("admin")
 export class UsuarioController {
   constructor(
     @repository(UsuarioRepository)
@@ -183,4 +187,34 @@ export class UsuarioController {
   async deleteById(@param.path.string('id') id: string): Promise<void> {
     await this.usuarioRepository.deleteById(id);
   }
+  //Servicio de login
+  @post('/login', {
+    responses: {
+      '200': {
+        description: 'Identificación de usuarios'
+      }
+    }
+  })
+  async login(
+    @requestBody() credenciales: Credenciales
+  ) {
+    let p = await this.servicioAuth.IdentificarPersona(credenciales.usuario, credenciales.password);
+    if (p) {
+      let token = this.servicioAuth.GenerarTokenJWT(p);
+ 
+      return {
+        status: "success",
+        data: {
+          nombre: p.nombre,
+          apellidos: p.apellidos,
+          correo: p.correo,
+          id: p.id
+        },
+        token: token
+      }
+    } else {
+      throw new HttpErrors[401]("Datos invalidos")
+    }
+  }
+
 }
